@@ -22,7 +22,7 @@ resource "aws_sns_topic" "this" {
 resource "aws_sns_topic_subscription" "this" {
   for_each = merge([
     for key, config in var.configs : {
-      for k, v in config.subscriptions : "${key}-${k}" => {
+      for k, v in try(config.subscriptions, {}) : "${key}-${k}" => {
         topic_key    = key
         sub_key      = k
         subscription = v
