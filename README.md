@@ -15,11 +15,17 @@
 
 
 
-This Terraform module manages AWS SNS topics and their subscriptions. It allows you to define multiple SNS 
-topics and their configurations, including attributes like name, display name, FIFO settings, and more. 
-Additionally, it supports managing SNS topic subscriptions with various protocols, endpoints, and other 
-subscription-specific settings. The module is designed to be flexible and configurable, making it easy to 
-integrate with different AWS environments and use cases.
+This Terraform module manages AWS SNS topics and their subscriptions in AWS environments. It provides comprehensive 
+management of SNS topics with support for:
+- Multiple topic configurations
+- FIFO and Standard topics
+- Topic policies and access controls
+- Cross-account access
+- Various subscription protocols (HTTP/S, Email, SQS, Lambda)
+- Subscription filtering
+- Dead-letter queues
+- Server-side encryption
+The module follows AWS best practices and supports hub-spoke architecture patterns.
 
 
 ---
@@ -52,10 +58,118 @@ We have [*lots of terraform modules*][terraform_modules] that are Open Source an
 
 
 
+## Introduction
+
+The AWS SNS Topics Management Module simplifies the creation and management of SNS topics and their subscriptions
+in AWS environments. It's designed for organizations using a hub-spoke architecture pattern and supports various
+deployment scenarios from simple topic creation to complex multi-account setups.
+
+Key features:
+- Automated topic naming based on organization structure
+- Standardized tagging and resource management
+- Support for both hub and spoke configurations
+- Flexible subscription management
+- Integration with AWS security best practices
+
+## Usage
 
 
+**IMPORTANT:** The `master` branch is used in `source` just as an example. In your code, do not pin to `master` because there may be breaking changes between releases.
+Instead pin to the release tag (e.g. `?ref=vX.Y.Z`) of one of our [latest releases](https://github.com/cloudopsworks/terraform-module-aws-sns-topics/releases).
 
 
+Configuration structure:
+```yaml
+configs:
+  topic_name:
+    name: string                 # Required: Topic name
+    display_name: string         # Optional: Display name for the topic
+    fifo_topic: boolean         # Optional: Whether the topic is FIFO (default: false)
+    content_based_deduplication: boolean  # Optional: Enable content-based deduplication for FIFO topics
+    kms_master_key_id: string   # Optional: KMS key for encryption
+    tags: map                   # Optional: Additional tags
+    subscriptions:
+      - protocol: string        # Required: Subscription protocol (http/https/email/sqs/lambda)
+        endpoint: string        # Required: Subscription endpoint
+        filter_policy: map      # Optional: Message filtering policy
+        redrive_policy: map     # Optional: Dead-letter queue configuration
+```
+
+## Quick Start
+
+1. Add the module to your Terragrunt configuration:
+   ```hcl
+   terraform {
+     source = "git::https://github.com/cloudopsworks/terraform-module-aws-sns-topics.git?ref=v1.0.0"
+   }
+   ```
+
+2. Configure basic organization settings:
+   ```hcl
+   inputs = {
+     org = {
+       organization_name = "YourCompany"
+       organization_unit = "YourUnit"
+       environment_type = "dev"
+       environment_name = "test"
+     }
+   }
+   ```
+
+3. Add your first SNS topic configuration:
+   ```hcl
+   configs = {
+     notification = {
+       name = "basic-notifications"
+       subscriptions = [
+         {
+           protocol = "email"
+           endpoint = "notifications@company.com"
+         }
+       ]
+     }
+   }
+   ```
+
+4. Run terragrunt plan and apply to create resources
+
+
+## Examples
+
+Terragrunt configuration example (terragrunt.hcl):
+```hcl
+include "root" {
+  path = find_in_parent_folders()
+}
+
+terraform {
+  source = "git::https://github.com/cloudopsworks/terraform-module-aws-sns-topics.git?ref=v1.0.0"
+}
+
+inputs = {
+  is_hub = false
+  spoke_def = "001"
+  org = {
+    organization_name = "MyCompany"
+    organization_unit = "MyUnit"
+    environment_type = "prod"
+    environment_name = "main"
+  }
+
+  configs = {
+    alerts = {
+      name = "system-alerts"
+      display_name = "System Alerts"
+      subscriptions = [
+        {
+          protocol = "email"
+          endpoint = "alerts@company.com"
+        }
+      ]
+    }
+  }
+}
+```
 
 
 
@@ -75,6 +189,7 @@ Available targets:
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.0 |
 
 ## Providers
 
